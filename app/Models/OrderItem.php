@@ -1,0 +1,35 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class OrderItem extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'order_id',
+        'product_id',
+        'weight',
+        'price_per_kg',
+        'total_price',
+    ];
+
+    /**
+     * Ogni item appartiene a un ordine.
+     */
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * Ogni item fa riferimento a un prodotto.
+     */
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+}
