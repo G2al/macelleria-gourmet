@@ -108,12 +108,12 @@
                                                 Peso (Kg) <span class="text-xs text-gray-400">(usa . oppure ,)</span>
                                             </label>
                                             <input type="text" 
-       name="products[0][weight]"
-       class="weight-input w-full rounded-xl border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500"
-       placeholder="es. 0,5"
-       inputmode="decimal"
-       @input="normalizeWeight($event); calc()"
-       required>
+                                                name="products[0][weight]"
+                                                class="weight-input w-full rounded-xl border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500"
+                                                placeholder="es. 0,5"
+                                                inputmode="decimal"
+                                                @input="normalizeWeight($event); calc()"
+                                                required>
                                             <div class="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-600">
                                                 <span>Prezzo: <strong x-text="selected ? formatPrice(selected.price) : '—'"></strong> €/kg</span>
                                                 <span>Subtotale: <strong x-text="formatPrice(subtotal)"></strong> €</span>
@@ -182,12 +182,24 @@
 
             <!-- Side info -->
             <aside class="space-y-6">
+                {{-- INFO HELPER --}}
+                <div class="rounded-2xl border border-blue-200 bg-blue-50 p-6">
+                    <h3 class="mb-3 font-semibold text-blue-900">💡 Come calcolare il peso</h3>
+                    <p class="text-sm text-blue-900/80">Proprio come in macelleria! Se vuoi:</p>
+                    <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-blue-900/80">
+                        <li>1 hamburger = 80g</li>
+                        <li>1 polpetta = 50g</li>
+                        <li>1 cotoletta = 150g</li>
+                    </ul>
+                    <p class="mt-3 text-sm text-blue-900/80"><strong>Es:</strong> 1 hamburger + 2 polpette = 80g + 100g = 0,180kg</p>
+                </div>
+
                 <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6">
                     <h3 class="mb-2 font-semibold text-amber-900">Come funziona</h3>
                     <ul class="list-disc space-y-1 pl-5 text-amber-900/80">
                         <li>Scegli uno o più prodotti e indica il peso (kg).</li>
                         <li>Seleziona data e orario di ritiro disponibili.</li>
-                        <li>Riceverai conferma appena l’ordine viene preso in carico.</li>
+                        <li>Riceverai conferma appena l'ordine viene preso in carico.</li>
                     </ul>
                 </div>
 

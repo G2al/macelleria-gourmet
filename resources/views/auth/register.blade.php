@@ -16,13 +16,23 @@
             <x-input-error :messages="$errors->get('name')" class="mt-2" />
         </div>
 
-        <!-- Surname (opzionale: se nel tuo users c’è) -->
+        <!-- Surname -->
         @if (Schema::hasColumn('users', 'surname'))
             <div>
                 <x-input-label for="surname" :value="__('Cognome')" />
                 <x-text-input id="surname" class="block mt-1 w-full" type="text" name="surname"
-                              :value="old('surname')" autocomplete="family-name" />
+                              :value="old('surname')" required autocomplete="family-name" />
                 <x-input-error :messages="$errors->get('surname')" class="mt-2" />
+            </div>
+        @endif
+
+        <!-- Phone -->
+        @if (Schema::hasColumn('users', 'phone'))
+            <div>
+                <x-input-label for="phone" :value="__('Telefono')" />
+                <x-text-input id="phone" class="block mt-1 w-full" type="tel" name="phone"
+                              :value="old('phone')" required autocomplete="tel" />
+                <x-input-error :messages="$errors->get('phone')" class="mt-2" />
             </div>
         @endif
 

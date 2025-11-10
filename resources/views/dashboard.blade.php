@@ -133,56 +133,101 @@
             @endif
         </div>
 
-        {{-- GRID per CATEGORIA --}}
-        <div class="mt-10">
-            <h2 class="mb-4 text-xl font-bold text-gray-900">Tutti i prodotti per categoria</h2>
+{{-- GRID per CATEGORIA con TAB --}}
+<div class="mt-10">
+    <h2 class="mb-4 text-xl font-bold text-gray-900">Tutti i prodotti per categoria</h2>
 
-            @forelse ($categories as $cat)
+    @if ($categories->isNotEmpty())
+        {{-- TAB BOTTONI CATEGORIE --}}
+        <div class="mb-6 flex flex-wrap gap-2 border-b border-gray-200 pb-4">
+            @foreach ($categories as $index => $cat)
                 @php $prods = $cat->products; @endphp
                 @if ($prods->isNotEmpty())
-                    <div class="mt-8">
-                        <h3 class="mb-3 text-lg font-semibold text-gray-900">{{ $cat->name }}</h3>
-                        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                            @foreach ($prods as $p)
-                                @php
-                                    $url = $photoUrl($p->photo) ?: $placeholder;
-                                    $desc = $p->description ? \Illuminate\Support\Str::limit($p->description, 120) : null;
-                                @endphp
-                                <article class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition">
-                                    <div class="aspect-[4/3] bg-gray-100">
-                                        <img src="{{ $url }}" alt="{{ $p->name }}"
-                                             class="h-full w-full object-cover"
-                                             loading="lazy"
-                                             onerror="this.src='{{ $placeholder }}'; this.onerror=null;">
-                                    </div>
-                                    <div class="p-4">
-                                        <div class="flex items-start justify-between gap-4">
-                                            <h4 class="font-semibold text-gray-900 truncate">{{ $p->name }}</h4>
-                                            <span class="shrink-0 rounded-lg bg-amber-100 px-2 py-1 text-sm font-medium text-amber-800">
-                                                € {{ number_format($p->price_per_kg, 2, ',', '.') }} /kg
-                                            </span>
-                                        </div>
-                                        @if($desc)
-                                            <p class="mt-1 text-sm text-gray-600">{{ $desc }}</p>
-                                        @endif
-                                        <div class="mt-3">
-                                            <a href="{{ route('orders.create') }}"
-                                               class="inline-flex items-center rounded-xl bg-amber-600 px-3 py-2 text-white hover:bg-amber-700">
-                                                Prenota
-                                            </a>
-                                        </div>
-                                    </div>
-                                </article>
-                            @endforeach
-                        </div>
-                    </div>
+                    <button 
+                        onclick="showCategory({{ $cat->id }})"
+                        class="category-tab px-4 py-2 rounded-lg font-medium transition-all
+                            @if($index === 0) 
+                                bg-amber-600 text-white 
+                            @else 
+                                bg-gray-100 text-gray-700 hover:bg-gray-200 
+                            @endif"
+                        data-category-id="{{ $cat->id }}">
+                        {{ $cat->name }}
+                    </button>
                 @endif
-            @empty
-                <div class="rounded-2xl border border-dashed border-gray-300 p-12 text-center text-gray-500">
-                    Nessuna categoria disponibile.
-                </div>
-            @endforelse
+            @endforeach
         </div>
+
+        {{-- CONTENITORE PRODOTTI --}}
+        @foreach ($categories as $index => $cat)
+            @php $prods = $cat->products; @endphp
+            @if ($prods->isNotEmpty())
+                <div id="category-{{ $cat->id }}" class="category-content @if($index !== 0) hidden @endif">
+                    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        @foreach ($prods as $p)
+                            @php
+                                $url = $photoUrl($p->photo) ?: $placeholder;
+                                $desc = $p->description ? \Illuminate\Support\Str::limit($p->description, 120) : null;
+                            @endphp
+                            <article class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition">
+                                <div class="aspect-[4/3] bg-gray-100">
+                                    <img src="{{ $url }}" alt="{{ $p->name }}"
+                                         class="h-full w-full object-cover"
+                                         loading="lazy"
+                                         onerror="this.src='{{ $placeholder }}'; this.onerror=null;">
+                                </div>
+                                <div class="p-4">
+                                    <div class="flex items-start justify-between gap-4">
+                                        <h4 class="font-semibold text-gray-900 truncate">{{ $p->name }}</h4>
+                                        <span class="shrink-0 rounded-lg bg-amber-100 px-2 py-1 text-sm font-medium text-amber-800">
+                                            € {{ number_format($p->price_per_kg, 2, ',', '.') }} /kg
+                                        </span>
+                                    </div>
+                                    @if($desc)
+                                        <p class="mt-1 text-sm text-gray-600">{{ $desc }}</p>
+                                    @endif
+                                    <div class="mt-3">
+                                        <a href="{{ route('orders.create') }}"
+                                           class="inline-flex items-center rounded-xl bg-amber-600 px-3 py-2 text-white hover:bg-amber-700">
+                                            Prenota
+                                        </a>
+                                    </div>
+                                </div>
+                            </article>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        @endforeach
+
+        {{-- JAVASCRIPT PER IL TAB --}}
+        <script>
+            function showCategory(categoryId) {
+                // Nascondi tutti i contenuti
+                document.querySelectorAll('.category-content').forEach(el => {
+                    el.classList.add('hidden');
+                });
+
+                // Togli active da tutti i tab
+                document.querySelectorAll('.category-tab').forEach(btn => {
+                    btn.classList.remove('bg-amber-600', 'text-white');
+                    btn.classList.add('bg-gray-100', 'text-gray-700');
+                });
+
+                // Mostra il contenuto selezionato
+                document.getElementById('category-' + categoryId).classList.remove('hidden');
+
+                // Attiva il tab cliccato
+                event.target.classList.remove('bg-gray-100', 'text-gray-700');
+                event.target.classList.add('bg-amber-600', 'text-white');
+            }
+        </script>
+    @else
+        <div class="rounded-2xl border border-dashed border-gray-300 p-12 text-center text-gray-500">
+            Nessuna categoria disponibile.
+        </div>
+    @endif
+</div>
 
         {{-- CONTATTI --}}
         <div id="contatti" class="mt-12 grid gap-6 md:grid-cols-3">
