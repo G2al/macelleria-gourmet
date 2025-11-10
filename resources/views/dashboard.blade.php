@@ -10,15 +10,22 @@
                 $q->where('is_active', true)->orderBy('name');
             }])->orderBy('name')->get();
 
-        // Helper URL foto sicuro (accetta URL assoluti o path di Storage)
         $photoUrl = function ($path) {
-            if (!$path) return null;
-            if (filter_var($path, FILTER_VALIDATE_URL)) return $path;
-            return \Illuminate\Support\Facades\Storage::exists($path)
-                ? \Illuminate\Support\Facades\Storage::url($path)
-                : null;
-        };
+    if (!$path) return null;
 
+    // Se è URL assoluto (es. da S3 o CDN)
+    if (filter_var($path, FILTER_VALIDATE_URL)) {
+        return $path;
+    }
+
+    // Filament salva in "products/..." (senza public/)
+    // quindi costruiamo noi il percorso reale
+    $relative = 'public/' . ltrim($path, '/');
+
+    return \Illuminate\Support\Facades\Storage::exists($relative)
+        ? \Illuminate\Support\Facades\Storage::url($relative)
+        : null;
+};
         $placeholder = asset('images/placeholder-product.png');
     @endphp
 
