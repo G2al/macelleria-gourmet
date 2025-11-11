@@ -226,10 +226,10 @@
                 <h3 class="mb-3 font-bold text-emerald-900 text-lg">📞 Contatti rapidi</h3>
                 <p class="text-sm text-emerald-900/80 font-medium mb-4">Hai bisogno di aiuto o vuoi modificare?</p>
                 <div class="flex flex-col gap-3 sm:flex-row">
-                    <a href="tel:+393757372335" class="flex-1 rounded-xl border-2 border-emerald-300 bg-white px-4 py-3 text-center text-emerald-700 font-bold hover:bg-emerald-100 transition-colors">
+                    <a href="tel:+08117672400" class="flex-1 rounded-xl border-2 border-emerald-300 bg-white px-4 py-3 text-center text-emerald-700 font-bold hover:bg-emerald-100 transition-colors">
                         ☎️ Chiama
                     </a>
-                    <a href="https://wa.me/393757372335?text=Ciao%20Polleria%20Gourmet%2C%20vorrei%20info"
+                    <a href="https://wa.me/08117672400?text=Ciao%20Polleria%20Gourmet%2C%20vorrei%20info"
                        class="flex-1 rounded-xl bg-emerald-500 px-4 py-3 text-center text-white font-bold hover:bg-emerald-600 transition-colors">
                         💬 WhatsApp
                     </a>
@@ -239,7 +239,7 @@
     </div>
 
     <!-- Floating WhatsApp -->
-    <a href="https://wa.me/393757372335?text=Ciao%20Polleria%20Gourmet%2C%20vorrei%20prenotare"
+    <a href="https://wa.me/08117672400?text=Ciao%20Polleria%20Gourmet%2C%20vorrei%20prenotare"
        class="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-3 text-white font-bold shadow-2xl hover:bg-emerald-600 transition-all sm:hidden">
         💬 WhatsApp
     </a>
