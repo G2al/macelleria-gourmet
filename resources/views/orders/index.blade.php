@@ -132,12 +132,10 @@
                             @endif
 
                             <!-- Footer con CTA -->
-                            <div class="px-5 py-3 bg-gray-50">
-                                <a href="https://wa.me/08117672400?text=Ciao%2C%20ho%20una%20prenotazione%20per%20{{ urlencode(implode('%2C%20', $order->items->pluck('product.name')->toArray())) }}%20il%20{{ $order->pickup_date }}"
-                                   class="w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-center text-white text-sm font-bold hover:bg-emerald-600 transition-colors">
-                                Contattaci se hai domande
-                                </a>
-                            </div>
+<a href="https://wa.me/39817672400?text=Ciao%2C%20ho%20una%20domanda%20sulla%20mia%20prenotazione"
+   class="w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-center text-white text-sm font-bold hover:bg-emerald-600 transition-colors">
+    Contattaci se hai domande
+</a>
                         </div>
                     @endforeach
                 </div>
