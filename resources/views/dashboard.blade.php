@@ -1,263 +1,285 @@
 <x-app-layout>
     @php
-        // Prodotti in evidenza = ultimi attivi
         $featuredProducts = ($featuredProducts ?? null)
             ?: \App\Models\Product::where('is_active', true)->latest()->take(8)->get();
 
-        // Categorie con prodotti attivi
         $categories = ($categories ?? null)
             ?: \App\Models\Category::with(['products' => function ($q) {
                 $q->where('is_active', true)->orderBy('name');
             }])->orderBy('name')->get();
 
-        // ✅ Helper URL foto sicuro (versione definitiva)
         $photoUrl = function ($path) {
             if (!$path) return null;
-
-            // Se è URL assoluto (es. CDN o S3)
             if (filter_var($path, FILTER_VALIDATE_URL)) {
                 return $path;
             }
-
-            // Filament salva in "products/..." senza "public/"
             $relative = 'public/' . ltrim($path, '/');
-
-            // Se esiste con "public/"
             if (\Illuminate\Support\Facades\Storage::exists($relative)) {
-                return \Illuminate\Support\Facades\Storage::url($relative); // → /storage/products/...
+                return \Illuminate\Support\Facades\Storage::url($relative);
             }
-
-            // Se esiste anche senza "public/" (fallback)
             if (\Illuminate\Support\Facades\Storage::exists($path)) {
                 return \Illuminate\Support\Facades\Storage::url($path);
             }
-
-            // Nessun file trovato → null
             return null;
         };
 
         $placeholder = asset('images/placeholder-product.png');
     @endphp
 
-    <div class="mx-auto max-w-6xl px-4 py-10">
-        {{-- HERO --}}
-        <div class="rounded-2xl relative overflow-hidden shadow-lg">
-            <div class="absolute inset-0">
-                <img src="{{ asset('storage/img/bg.jpg') }}" alt="Polleria Gourmet background"
-                     class="h-full w-full object-cover opacity-80">
-                <div class="absolute inset-0 bg-black/40"></div>
+    <div class="min-h-screen bg-gradient-to-b from-amber-50 via-white to-gray-50">
+        <!-- HERO SECTION -->
+        <div class="relative overflow-hidden bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 px-4 py-12 sm:py-16">
+            <div class="absolute inset-0 opacity-10">
+                <svg class="h-full w-full" viewBox="0 0 100 100"><circle cx="20" cy="20" r="30" fill="currentColor"/><circle cx="80" cy="80" r="40" fill="currentColor"/></svg>
             </div>
-
-            <div class="relative z-10 p-8 text-white">
-                <div class="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <h1 class="text-2xl font-bold">Benvenuto nella tua area personale, {{ Auth::user()->name }} 👋</h1>
-                        <p class="mt-2 max-w-2xl text-white/90">
-                            Prenota tagli e preparazioni dalla <span class="font-semibold">Polleria Gourmet</span>.
-                            Scegli prodotti, peso, data e ora di ritiro. Facile e veloce!
+            <div class="relative z-10 mx-auto max-w-6xl">
+                <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="text-white">
+                        <h1 class="text-4xl font-black leading-tight">Ciao, {{ Auth::user()->name }}! 👋</h1>
+                        <p class="mt-3 max-w-2xl text-lg text-amber-50">
+                            Benvenuto nella <span class="font-bold">Polleria Gourmet</span>. Prenota i tuoi prodotti preferiti e ritirali quando vuoi!
                         </p>
                     </div>
 
-                    <div class="flex gap-4 flex-nowrap">
+                    <div class="flex flex-col gap-3 sm:flex-row">
                         <a href="{{ route('orders.create') }}"
-                           class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-6 py-3 text-base font-semibold text-gray-900 shadow-lg shadow-amber-500/30 transition-all duration-200 hover:from-amber-500 hover:to-yellow-400 hover:scale-[1.03] whitespace-nowrap">
-                            🛒 <span>Nuova Prenotazione</span>
+                           class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3.5 font-bold text-amber-600 shadow-xl hover:shadow-2xl hover:scale-105 transition-all whitespace-nowrap">
+                            🛒 Nuova Prenotazione
                         </a>
-
                         <a href="{{ route('orders.index') }}"
-                           class="inline-flex items-center gap-2 rounded-xl border border-amber-400/60 bg-black/40 px-6 py-3 text-base font-medium text-amber-300 shadow-md transition-all duration-200 hover:bg-amber-500/10 hover:border-amber-300 hover:text-amber-200 hover:scale-[1.03] whitespace-nowrap">
-                            📄 <span>Le mie prenotazioni</span>
+                           class="inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-white bg-amber-600/20 px-6 py-3.5 font-bold text-white shadow-lg hover:bg-amber-600/30 transition-all whitespace-nowrap">
+                            📋 Le mie Prenotazioni
                         </a>
                     </div>
                 </div>
             </div>
         </div>
 
-        {{-- CAROSELLO: Prodotti in evidenza --}}
-        <div class="mt-10">
-            <div class="mb-4 flex items-center justify-between">
-                <h2 class="text-xl font-bold text-gray-900">In evidenza</h2>
-                <div class="text-sm text-gray-500">Ultimi prodotti attivi</div>
-            </div>
+        <div class="mx-auto max-w-6xl px-4 py-10 sm:py-14">
 
-            @if ($featuredProducts->isEmpty())
-                <div class="rounded-2xl border border-dashed border-gray-300 p-12 text-center text-gray-500">
-                    Nessun prodotto disponibile al momento.
-                </div>
-            @else
-                {{-- Swiper CSS --}}
-                <link rel="stylesheet" href="https://unpkg.com/swiper@9/swiper-bundle.min.css" />
-                <div class="swiper">
-                    <div class="swiper-wrapper">
-                        @foreach ($featuredProducts as $p)
-                            @php
-                                $url = $photoUrl($p->photo) ?: $placeholder;
-                                $desc = $p->description ? \Illuminate\Support\Str::limit($p->description, 110) : null;
-                            @endphp
-                            <div class="swiper-slide">
-                                <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                                    <div class="aspect-[16/9] bg-gray-100">
-                                        <img src="{{ $url }}" alt="{{ $p->name }}"
-                                             class="h-full w-full object-cover"
-                                             onerror="this.src='{{ $placeholder }}'; this.onerror=null;">
-                                    </div>
-                                    <div class="p-4">
-                                        <div class="flex items-start justify-between gap-4">
-                                            <h3 class="font-semibold text-gray-900 truncate">{{ $p->name }}</h3>
-                                            <span class="shrink-0 rounded-lg bg-amber-100 px-2 py-1 text-sm font-medium text-amber-800">
-                                                € {{ number_format($p->price_per_kg, 2, ',', '.') }} /kg
-                                            </span>
-                                        </div>
-                                        @if($desc)
-                                            <p class="mt-1 text-sm text-gray-600">{{ $desc }}</p>
-                                        @endif
-                                        <div class="mt-3">
-                                            <a href="{{ route('orders.create') }}"
-                                               class="inline-flex items-center rounded-xl bg-amber-600 px-3 py-2 text-white hover:bg-amber-700">
-                                                Prenota
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
+            <!-- SEZIONE IN EVIDENZA -->
+            <section class="mb-14">
+                <div class="mb-6 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-900">⭐ In evidenza</h2>
+                        <p class="mt-1 text-gray-600">I nostri ultimi prodotti attivi</p>
                     </div>
-
-                    <div class="swiper-button-prev"></div>
-                    <div class="swiper-button-next"></div>
-                    <div class="swiper-pagination"></div>
                 </div>
 
-                {{-- Swiper JS --}}
-                <script src="https://unpkg.com/swiper@9/swiper-bundle.min.js"></script>
-                <script>
-                    document.addEventListener('DOMContentLoaded', () => {
-                        new Swiper('.swiper', {
-                            slidesPerView: 1.15,
-                            spaceBetween: 16,
-                            loop: true,
-                            centeredSlides: false,
-                            pagination: { el: '.swiper-pagination', clickable: true },
-                            navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
-                            breakpoints: {
-                                640: { slidesPerView: 2.15 },
-                                1024: { slidesPerView: 3.15 },
-                            },
-                        });
-                    });
-                </script>
-            @endif
-        </div>
-
-        {{-- GRID per CATEGORIA con TAB --}}
-        <div class="mt-10">
-            <h2 class="mb-4 text-xl font-bold text-gray-900">Tutti i prodotti per categoria</h2>
-
-            @if ($categories->isNotEmpty())
-                <div class="mb-6 flex flex-wrap gap-2 border-b border-gray-200 pb-4">
-                    @foreach ($categories as $index => $cat)
-                        @php $prods = $cat->products; @endphp
-                        @if ($prods->isNotEmpty())
-                            <button 
-                                onclick="showCategory({{ $cat->id }})"
-                                class="category-tab px-4 py-2 rounded-lg font-medium transition-all
-                                    @if($index === 0) 
-                                        bg-amber-600 text-white 
-                                    @else 
-                                        bg-gray-100 text-gray-700 hover:bg-gray-200 
-                                    @endif"
-                                data-category-id="{{ $cat->id }}">
-                                {{ $cat->name }}
-                            </button>
-                        @endif
-                    @endforeach
-                </div>
-
-                @foreach ($categories as $index => $cat)
-                    @php $prods = $cat->products; @endphp
-                    @if ($prods->isNotEmpty())
-                        <div id="category-{{ $cat->id }}" class="category-content @if($index !== 0) hidden @endif">
-                            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                                @foreach ($prods as $p)
-                                    @php
-                                        $url = $photoUrl($p->photo) ?: $placeholder;
-                                        $desc = $p->description ? \Illuminate\Support\Str::limit($p->description, 120) : null;
-                                    @endphp
-                                    <article class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition">
-                                        <div class="aspect-[4/3] bg-gray-100">
+                @if ($featuredProducts->isEmpty())
+                    <div class="rounded-3xl border-2 border-dashed border-gray-300 bg-white p-12 text-center">
+                        <p class="text-lg text-gray-500">📭 Nessun prodotto disponibile al momento</p>
+                    </div>
+                @else
+                    <link rel="stylesheet" href="https://unpkg.com/swiper@9/swiper-bundle.min.css" />
+                    <div class="swiper featured-swiper">
+                        <div class="swiper-wrapper">
+                            @foreach ($featuredProducts as $p)
+                                @php
+                                    $url = $photoUrl($p->photo) ?: $placeholder;
+                                    $desc = $p->description ? \Illuminate\Support\Str::limit($p->description, 100) : null;
+                                @endphp
+                                <div class="swiper-slide">
+                                    <div class="group overflow-hidden rounded-3xl border-2 border-gray-200 bg-white shadow-lg hover:shadow-2xl transition-all h-full flex flex-col">
+                                        <div class="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden relative">
                                             <img src="{{ $url }}" alt="{{ $p->name }}"
-                                                 class="h-full w-full object-cover"
-                                                 loading="lazy"
+                                                 class="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                  onerror="this.src='{{ $placeholder }}'; this.onerror=null;">
-                                        </div>
-                                        <div class="p-4">
-                                            <div class="flex items-start justify-between gap-4">
-                                                <h4 class="font-semibold text-gray-900 truncate">{{ $p->name }}</h4>
-                                                <span class="shrink-0 rounded-lg bg-amber-100 px-2 py-1 text-sm font-medium text-amber-800">
-                                                    € {{ number_format($p->price_per_kg, 2, ',', '.') }} /kg
-                                                </span>
+                                            <div class="absolute top-3 right-3 rounded-2xl bg-amber-500 px-4 py-2 font-bold text-white shadow-lg">
+                                                € {{ number_format($p->price_per_kg, 2, ',', '.') }}/kg
                                             </div>
+                                        </div>
+                                        <div class="flex flex-col flex-1 p-5">
+                                            <h3 class="font-bold text-gray-900 text-lg line-clamp-2">{{ $p->name }}</h3>
                                             @if($desc)
-                                                <p class="mt-1 text-sm text-gray-600">{{ $desc }}</p>
+                                                <p class="mt-2 text-sm text-gray-600 line-clamp-2">{{ $desc }}</p>
                                             @endif
-                                            <div class="mt-3">
+                                            <div class="mt-auto pt-4">
                                                 <a href="{{ route('orders.create') }}"
-                                                   class="inline-flex items-center rounded-xl bg-amber-600 px-3 py-2 text-white hover:bg-amber-700">
-                                                    Prenota
+                                                   class="w-full rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-3 text-center font-bold text-white shadow-md hover:from-amber-600 hover:to-amber-700 transition-all">
+                                                    Prenota ora
                                                 </a>
                                             </div>
                                         </div>
-                                    </article>
-                                @endforeach
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <div class="swiper-button-prev featured-swiper-prev"></div>
+                        <div class="swiper-button-next featured-swiper-next"></div>
+                        <div class="swiper-pagination featured-pagination"></div>
+                    </div>
+
+                    <script src="https://unpkg.com/swiper@9/swiper-bundle.min.js"></script>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', () => {
+                            new Swiper('.featured-swiper', {
+                                slidesPerView: 1.1,
+                                spaceBetween: 20,
+                                loop: true,
+                                pagination: { el: '.featured-pagination', clickable: true },
+                                navigation: { nextEl: '.featured-swiper-next', prevEl: '.featured-swiper-prev' },
+                                breakpoints: {
+                                    640: { slidesPerView: 2 },
+                                    1024: { slidesPerView: 3 },
+                                },
+                            });
+                        });
+                    </script>
+                @endif
+            </section>
+
+            <!-- SEZIONE CATEGORIE -->
+            <section>
+                <div class="mb-6">
+                    <h2 class="text-3xl font-bold text-gray-900">🏪 Tutti i prodotti</h2>
+                    <p class="mt-1 text-gray-600">Sfoglia per categoria</p>
+                </div>
+
+                @if ($categories->isNotEmpty())
+                    <!-- TAB BUTTONS -->
+                    <div class="mb-8 overflow-x-auto pb-2">
+                        <div class="flex gap-2 min-w-min sm:flex-wrap">
+                            @foreach ($categories as $index => $cat)
+                                @php $prods = $cat->products; @endphp
+                                @if ($prods->isNotEmpty())
+                                    <button 
+                                        onclick="showCategory({{ $cat->id }}, event)"
+                                        class="category-tab px-6 py-3 rounded-2xl font-bold transition-all whitespace-nowrap shadow-md
+                                            @if($index === 0) 
+                                                bg-gradient-to-r from-amber-500 to-amber-600 text-white 
+                                            @else 
+                                                bg-white text-gray-700 border-2 border-gray-200 hover:border-amber-400 
+                                            @endif"
+                                        data-category-id="{{ $cat->id }}">
+                                        {{ $cat->name }}
+                                    </button>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <!-- CATEGORIA CONTENUTO -->
+                    @foreach ($categories as $index => $cat)
+                        @php $prods = $cat->products; @endphp
+                        @if ($prods->isNotEmpty())
+                            <div id="category-{{ $cat->id }}" class="category-content @if($index !== 0) hidden @endif">
+                                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                    @foreach ($prods as $p)
+                                        @php
+                                            $url = $photoUrl($p->photo) ?: $placeholder;
+                                            $desc = $p->description ? \Illuminate\Support\Str::limit($p->description, 100) : null;
+                                        @endphp
+                                        <article class="group overflow-hidden rounded-2xl border-2 border-gray-200 bg-white shadow-md hover:shadow-xl transition-all flex flex-col h-full">
+                                            <div class="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden relative">
+                                                <img src="{{ $url }}" alt="{{ $p->name }}"
+                                                     class="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                                     loading="lazy"
+                                                     onerror="this.src='{{ $placeholder }}'; this.onerror=null;">
+                                                <div class="absolute top-3 right-3 rounded-xl bg-white px-3 py-1.5 text-sm font-bold text-amber-600 shadow-lg">
+                                                    € {{ number_format($p->price_per_kg, 2, ',', '.') }}
+                                                </div>
+                                            </div>
+                                            <div class="flex flex-col flex-1 p-4">
+                                                <h3 class="font-bold text-gray-900 line-clamp-2">{{ $p->name }}</h3>
+                                                @if($desc)
+                                                    <p class="mt-2 text-xs text-gray-600 line-clamp-2">{{ $desc }}</p>
+                                                @endif
+                                                <div class="mt-auto pt-4">
+                                                    <a href="{{ route('orders.create') }}"
+                                                       class="block rounded-xl bg-amber-600 px-3 py-2.5 text-center text-sm font-bold text-white hover:bg-amber-700 transition-colors">
+                                                        Prenota
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    @endforeach
+
+                    <script>
+                        function showCategory(categoryId, event) {
+                            document.querySelectorAll('.category-content').forEach(el => el.classList.add('hidden'));
+                            document.querySelectorAll('.category-tab').forEach(btn => {
+                                btn.classList.remove('bg-gradient-to-r', 'from-amber-500', 'to-amber-600', 'text-white');
+                                btn.classList.add('bg-white', 'text-gray-700', 'border-2', 'border-gray-200');
+                            });
+                            document.getElementById('category-' + categoryId).classList.remove('hidden');
+                            event.target.classList.remove('bg-white', 'text-gray-700', 'border-2', 'border-gray-200');
+                            event.target.classList.add('bg-gradient-to-r', 'from-amber-500', 'to-amber-600', 'text-white');
+                        }
+                    </script>
+                @else
+                    <div class="rounded-3xl border-2 border-dashed border-gray-300 bg-white p-12 text-center">
+                        <p class="text-lg text-gray-500">📭 Nessuna categoria disponibile</p>
+                    </div>
+                @endif
+            </section>
+
+            <!-- CONTATTI SECTION -->
+            <section class="mt-16 mb-10">
+                <h2 class="mb-6 text-3xl font-bold text-gray-900">📞 Contatti & Orari</h2>
+                <div class="grid gap-6 md:grid-cols-3">
+                    <!-- TELEFONO -->
+                    <div class="rounded-3xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-7 shadow-lg hover:shadow-xl transition-shadow">
+                        <div class="text-4xl mb-3">☎️</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Telefono</h3>
+                        <p class="text-gray-700 font-semibold mb-4">+39 375 737 2335</p>
+                        <a href="https://wa.me/393757372335" class="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 font-bold text-white hover:from-emerald-600 hover:to-emerald-700 transition-all">
+                            💬 WhatsApp
+                        </a>
+                    </div>
+
+                    <!-- INDIRIZZO -->
+                    <div class="rounded-3xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white p-7 shadow-lg hover:shadow-xl transition-shadow">
+                        <div class="text-4xl mb-3">📍</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Indirizzo</h3>
+                        <p class="text-gray-700 font-semibold mb-1">Via Esempio 123</p>
+                        <p class="text-gray-600 text-sm">80100 Napoli</p>
+                        <p class="mt-3 text-xs text-gray-500">Ritiro in negozio negli orari disponibili</p>
+                    </div>
+
+                    <!-- ORARI -->
+                    <div class="rounded-3xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-white p-7 shadow-lg hover:shadow-xl transition-shadow">
+                        <div class="text-4xl mb-3">🕐</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-3">Orari di apertura</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="font-semibold text-gray-700">Lunedì-Giovedì:</span>
+                                <span class="text-gray-900 font-bold">10:30-14:30 | 17:00-21:00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-semibold text-gray-700">Ven-Dom:</span>
+                                <span class="text-gray-900 font-bold">10:30-14:30 | 17:00-23:00</span>
                             </div>
                         </div>
-                    @endif
-                @endforeach
-
-                <script>
-                    function showCategory(categoryId) {
-                        document.querySelectorAll('.category-content').forEach(el => el.classList.add('hidden'));
-                        document.querySelectorAll('.category-tab').forEach(btn => {
-                            btn.classList.remove('bg-amber-600', 'text-white');
-                            btn.classList.add('bg-gray-100', 'text-gray-700');
-                        });
-                        document.getElementById('category-' + categoryId).classList.remove('hidden');
-                        event.target.classList.remove('bg-gray-100', 'text-gray-700');
-                        event.target.classList.add('bg-amber-600', 'text-white');
-                    }
-                </script>
-            @else
-                <div class="rounded-2xl border border-dashed border-gray-300 p-12 text-center text-gray-500">
-                    Nessuna categoria disponibile.
+                    </div>
                 </div>
-            @endif
-        </div>
-
-        {{-- CONTATTI --}}
-        <div id="contatti" class="mt-12 grid gap-6 md:grid-cols-3">
-            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h3 class="mb-2 font-semibold text-gray-900">Telefono</h3>
-                <p class="text-gray-600">+39 375 737 2335</p>
-                <a href="https://wa.me/393757372335" class="mt-3 inline-flex items-center rounded-lg bg-emerald-500 px-3 py-2 text-white hover:bg-emerald-600">
-                    WhatsApp
-                </a>
-            </div>
-            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h3 class="mb-2 font-semibold text-gray-900">Indirizzo</h3>
-                <p class="text-gray-600">Via Esempio 123, 80100 Napoli</p>
-                <p class="text-sm text-gray-500">Ritiro in negozio negli orari disponibili.</p>
-            </div>
-            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h3 class="mb-2 font-semibold text-gray-900">Orari</h3>
-                <p class="text-gray-600">Gio: 10:00–13:00</p>
-                <p class="text-gray-600">Lun–Mer, Ven–Sab: 10:00–13:00, 16:30–19:30</p>
-            </div>
+            </section>
         </div>
     </div>
 
-    {{-- FAB WhatsApp --}}
+    <!-- FAB WhatsApp (mobile) -->
     <a href="https://wa.me/393757372335?text=Ciao%20Polleria%20Gourmet%2C%20vorrei%20prenotare"
-       class="fixed bottom-6 right-6 z-50 inline-flex items-center rounded-full bg-emerald-500 px-5 py-3 text-white shadow-lg hover:bg-emerald-600">
-        WhatsApp
+       class="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-3 text-white font-bold shadow-2xl hover:bg-emerald-600 transition-all sm:hidden">
+        💬 WhatsApp
     </a>
+
+    <style>
+        .swiper-button-next::after,
+        .swiper-button-prev::after {
+            font-size: 24px;
+            font-weight: bold;
+            color: #d97706;
+        }
+        .swiper-pagination-bullet-active {
+            background-color: #d97706;
+        }
+        .swiper-pagination-bullet {
+            background-color: #e5e7eb;
+        }
+    </style>
 </x-app-layout>
