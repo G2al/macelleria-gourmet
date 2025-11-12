@@ -14,7 +14,7 @@ class Product extends Model
         'description',
         'photo',
         'category_id',
-        'price_per_kg',
+        'purchase_type',
         'is_active',
     ];
 

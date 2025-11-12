@@ -83,7 +83,7 @@ class OrderResource extends Resource
                     ->formatStateUsing(fn ($state) => \Carbon\Carbon::parse($state)->format('H:i')),
 
                 TextColumn::make('items_summary')
-                    ->label('Prodotti')
+                    ->label('Prodotti & Quantità')
                     ->html()
                     ->getStateUsing(function (Order $record) {
                         $items = $record->items;
@@ -91,22 +91,18 @@ class OrderResource extends Resource
                             return '<span style="color:#aaa;">Nessun prodotto</span>';
                         }
 
-                        if ($items->count() === 1) {
-                            return e($items->first()->product->name);
-                        }
+                        $summary = $items->map(function ($item) {
+                            $quantity = match($item->quantity_type) {
+                                'weight'   => number_format($item->quantity, 3, ',', '.') . ' kg',
+                                'unit'     => (int)$item->quantity . ' pezzi',
+                                'package'  => (int)$item->quantity . ' conf.',
+                                default    => $item->quantity,
+                            };
+                            return e($item->product->name) . " (" . $quantity . ")";
+                        })->join('<br>');
 
-                        $first = e($items->first()->product->name);
-                        $extra = $items->count() - 1;
-
-                        return "{$first} <span style='color:#aaa;'>+ altri {$extra}</span>";
+                        return $summary;
                     }),
-
-
-                TextColumn::make('total_price')
-                    ->label('Totale (€)')
-                    ->money('EUR')
-                    ->sortable()
-                    ->weight('bold'),
 
                 TextColumn::make('status')
                     ->label('Stato')

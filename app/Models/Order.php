@@ -11,7 +11,6 @@ class Order extends Model
 
     protected $fillable = [
         'user_id',
-        'total_price',
         'pickup_date',
         'pickup_time',
         'status',
@@ -32,14 +31,5 @@ class Order extends Model
     public function items()
     {
         return $this->hasMany(OrderItem::class);
-    }
-
-    /**
-     * Calcolo automatico del totale (somma dei prodotti).
-     */
-    public function getTotalPriceAttribute($value)
-    {
-        // Se il totale è salvato, usa quello, altrimenti calcola
-        return $value ?: $this->items->sum('total_price');
     }
 }

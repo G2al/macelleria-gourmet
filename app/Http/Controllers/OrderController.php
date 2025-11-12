@@ -42,7 +42,6 @@ class OrderController extends Controller
         $settings    = BookingSetting::first();
         $defaultDate = Carbon::now()->addDays($settings->min_days_advance ?? 1);
 
-        // Genera gli slot disponibili per la data di default (min prenotabile)
         $timeSlots = $this->generateSlotsForDate($defaultDate);
 
         return view('orders.create', [
@@ -59,17 +58,17 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'products'            => ['required', 'array', 'min:1'],
-            'products.*.id'       => ['required', 'exists:products,id'],
-            'products.*.weight'   => ['required', 'string'], // accettiamo "0,5" o "0.5"
-            'pickup_date'         => ['required', 'date'],
-            'pickup_time'         => ['required', 'string'],
+            'products'              => ['required', 'array', 'min:1'],
+            'products.*.id'         => ['required', 'exists:products,id'],
+            'products.*.quantity'   => ['required', 'string'],
+            'pickup_date'           => ['required', 'date'],
+            'pickup_time'           => ['required', 'string'],
         ]);
 
         $date = Carbon::parse($request->pickup_date)->toDateString();
         $time = $request->pickup_time;
 
-        // 1) Validazione server: l'orario scelto deve essere uno slot ancora disponibile per quella data
+        // 1) Validazione server: l'orario scelto deve essere disponibile
         $availableSlots = $this->generateSlotsForDate(Carbon::parse($date));
         if (!in_array($time, $availableSlots, true)) {
             return back()
@@ -77,7 +76,7 @@ class OrderController extends Controller
                 ->withInput();
         }
 
-        // 2) (Extra robustezza) ricontrollo capacità attuale prima di creare l'ordine
+        // 2) Ricontrollo capacità slot
         $currentCount = Order::where('pickup_date', $date)
             ->where('pickup_time', $time)
             ->where('status', '!=', 'cancelled')
@@ -89,49 +88,47 @@ class OrderController extends Controller
                 ->withInput();
         }
 
-        // 3) Crea ordine
+        // 3) Crea ordine (senza total_price)
         $order = Order::create([
             'user_id'     => Auth::id(),
             'pickup_date' => $date,
             'pickup_time' => $time,
             'status'      => 'pending',
             'notes'       => $request->notes,
-            'total_price' => 0,
         ]);
 
-        $total = 0;
-
-        // 4) Righe ordine
+        // 4) Salva i prodotti ordinati
         foreach ($request->products as $productData) {
-            // Normalizza peso "0,5" -> 0.5
-            $weight  = (float) str_replace(',', '.', $productData['weight']);
             $product = Product::findOrFail($productData['id']);
-            $itemTotal = $product->price_per_kg * $weight;
+            
+            // Normalizza quantità: "0,5" -> 0.5
+            $quantity = (float) str_replace(',', '.', $productData['quantity']);
 
             OrderItem::create([
                 'order_id'      => $order->id,
                 'product_id'    => $product->id,
-                'weight'        => $weight,
-                'price_per_kg'  => $product->price_per_kg,
-                'total_price'   => $itemTotal,
+                'quantity'      => $quantity,
+                'quantity_type' => $product->purchase_type,
             ]);
-
-            $total += $itemTotal;
         }
 
-        $order->update(['total_price' => $total]);
-
-        // 5) Telegram admin
+        // 5) Invia notifica Telegram
         $msg = "🧾 *Nuova Prenotazione Ricevuta!*\n\n"
             . "👤 *Cliente:* " . Auth::user()->name . " " . Auth::user()->surname . "\n"
             . "📦 *Prodotti:*\n";
 
         foreach ($order->items as $item) {
-            $msg .= "• " . $item->product->name . " (" . number_format($item->weight, 3) . "kg) - €" . number_format($item->total_price, 2) . "\n";
+            $quantityLabel = match($item->quantity_type) {
+                'weight'   => number_format($item->quantity, 3) . " kg",
+                'unit'     => (int)$item->quantity . " pezzi",
+                'package'  => (int)$item->quantity . " confezioni",
+                default    => $item->quantity,
+            };
+            
+            $msg .= "• " . $item->product->name . " (" . $quantityLabel . ")\n";
         }
 
-        $msg .= "\n💰 *Totale:* €" . number_format($total, 2)
-            . "\n📅 *Ritiro:* " . $order->pickup_date . " alle " . $order->pickup_time
+        $msg .= "\n📅 *Ritiro:* " . $order->pickup_date . " alle " . $order->pickup_time
             . "\n\n🕒 Stato: *In attesa di conferma*"
             . "\n\n🏪 [Apri pannello admin](http://127.0.0.1:8000/admin)";
 
@@ -143,7 +140,7 @@ class OrderController extends Controller
     }
 
     /**
-     * Endpoint AJAX: ritorna gli slot disponibili per una data (YYYY-MM-DD).
+     * Endpoint AJAX: ritorna gli slot disponibili per una data.
      */
     public function slots(Request $request)
     {
@@ -156,28 +153,22 @@ class OrderController extends Controller
     }
 
     /**
-     * Genera gli slot (ogni 30 minuti) per una data, filtrando quelli pieni.
-     * - Usa opening_hours per le fasce (mattina/pomeriggio)
-     * - Esclude slot che hanno già raggiunto SLOT_CAPACITY (conteggia tutti tranne 'cancelled')
-     * - Inclusivo sull'orario di chiusura (es. 13:00 e 19:30 possono comparire)
+     * Genera gli slot per una data, filtrando quelli pieni.
      */
     private function generateSlotsForDate(Carbon $date): array
     {
-        // 0=Lun … 6=Dom (il DB usa questo mapping)
         $dow = $date->dayOfWeekIso - 1;
 
-        // fasce orarie attive per il giorno
         $ranges = OpeningHour::where('is_active', true)
             ->where('day_of_week', $dow)
             ->orderBy('opening_time')
             ->get();
 
-        // conteggi per la data (tutti gli status tranne 'cancelled')
         $countsByTime = Order::select('pickup_time', DB::raw('COUNT(*) as c'))
             ->where('pickup_date', $date->toDateString())
             ->where('status', '!=', 'cancelled')
             ->groupBy('pickup_time')
-            ->pluck('c', 'pickup_time'); // es. ['11:00:00' => 2, '12:30:00' => 3]
+            ->pluck('c', 'pickup_time');
 
         $slots = collect();
 
@@ -185,10 +176,9 @@ class OrderController extends Controller
             $start = Carbon::createFromTimeString($r->opening_time);
             $end   = Carbon::createFromTimeString($r->closing_time);
 
-            // Inclusivo sull'end
             while ($start <= $end) {
                 $timeHhmm = $start->format('H:i');
-                $timeDb   = $start->format('H:i:s'); // i record in DB sono 'H:i:s'
+                $timeDb   = $start->format('H:i:s');
 
                 $used = (int) ($countsByTime[$timeDb] ?? 0);
 

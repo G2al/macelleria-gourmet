@@ -33,7 +33,6 @@
                         <thead class="bg-gradient-to-r from-amber-50 to-amber-100">
                             <tr>
                                 <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wide text-gray-700">Prodotti</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wide text-gray-700">Totale</th>
                                 <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wide text-gray-700">Data</th>
                                 <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wide text-gray-700">Ora</th>
                                 <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wide text-gray-700">Stato</th>
@@ -47,13 +46,19 @@
                                         @foreach ($order->items as $item)
                                             <div class="flex gap-2 mb-2 last:mb-0">
                                                 <span class="font-semibold text-gray-900">{{ $item->product->name ?? 'Prodotto eliminato' }}</span>
-                                                <span class="text-gray-500">({{ number_format($item->weight, 3, ',', '.') }} kg)</span>
-                                                <span class="text-amber-600 font-semibold">€ {{ number_format($item->total_price, 2, ',', '.') }}</span>
+                                                <span class="text-gray-500">
+                                                    @if ($item->quantity_type === 'weight')
+                                                        ({{ number_format($item->quantity, 3, ',', '.') }} kg)
+                                                    @elseif ($item->quantity_type === 'unit')
+                                                        ({{ (int)$item->quantity }} pezzi)
+                                                    @elseif ($item->quantity_type === 'package')
+                                                        ({{ (int)$item->quantity }} confezioni)
+                                                    @else
+                                                        ({{ $item->quantity }})
+                                                    @endif
+                                                </span>
                                             </div>
                                         @endforeach
-                                    </td>
-                                    <td class="px-6 py-4 text-sm font-bold text-gray-900">
-                                        € {{ number_format($order->total_price, 2, ',', '.') }}
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-700">
                                         {{ \Carbon\Carbon::parse($order->pickup_date)->format('d/m/Y') }}
@@ -89,7 +94,7 @@
                             <!-- Header card -->
                             <div class="bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-4 text-white">
                                 <div class="flex items-center justify-between mb-2">
-                                    <span class="text-2xl font-black">€ {{ number_format($order->total_price, 2, ',', '.') }}</span>
+                                    <span class="text-lg font-bold">Prenotazione</span>
                                     @php
                                         $map = [
                                             'pending'   => ['⏳ In attesa', 'bg-yellow-200 text-yellow-900'],
@@ -114,9 +119,16 @@
                                     @foreach ($order->items as $item)
                                         <div class="rounded-lg bg-gray-50 p-3 border border-gray-100">
                                             <div class="font-semibold text-gray-900 text-sm mb-1">{{ $item->product->name ?? 'Prodotto eliminato' }}</div>
-                                            <div class="flex items-center justify-between text-xs text-gray-600">
-                                                <span>{{ number_format($item->weight, 3, ',', '.') }} kg</span>
-                                                <span class="font-bold text-amber-600">€ {{ number_format($item->total_price, 2, ',', '.') }}</span>
+                                            <div class="text-xs text-gray-600">
+                                                @if ($item->quantity_type === 'weight')
+                                                    {{ number_format($item->quantity, 3, ',', '.') }} kg
+                                                @elseif ($item->quantity_type === 'unit')
+                                                    {{ (int)$item->quantity }} pezzi
+                                                @elseif ($item->quantity_type === 'package')
+                                                    {{ (int)$item->quantity }} confezioni
+                                                @else
+                                                    {{ $item->quantity }}
+                                                @endif
                                             </div>
                                         </div>
                                     @endforeach
@@ -132,10 +144,10 @@
                             @endif
 
                             <!-- Footer con CTA -->
-<a href="https://wa.me/39817672400?text=Ciao%2C%20ho%20una%20domanda%20sulla%20mia%20prenotazione"
-   class="w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-center text-white text-sm font-bold hover:bg-emerald-600 transition-colors">
-    Contattaci se hai domande
-</a>
+                            <a href="https://wa.me/39817672400?text=Ciao%2C%20ho%20una%20domanda%20sulla%20mia%20prenotazione"
+                               class="w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-center text-white text-sm font-bold hover:bg-emerald-600 transition-colors">
+                                Contattaci se hai domande
+                            </a>
                         </div>
                     @endforeach
                 </div>

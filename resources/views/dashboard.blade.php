@@ -24,6 +24,15 @@
         };
 
         $placeholder = asset('images/placeholder-product.png');
+
+        $getPurchaseLabel = function ($type) {
+            return match($type) {
+                'weight'   => 'Al peso',
+                'unit'     => 'A pezzi',
+                'package'  => 'A confezioni',
+                default    => $type,
+            };
+        };
     @endphp
 
     <div class="min-h-screen bg-gradient-to-b from-amber-50 via-white to-gray-50">
@@ -86,7 +95,7 @@
                                                  class="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                  onerror="this.src='{{ $placeholder }}'; this.onerror=null;">
                                             <div class="absolute top-3 right-3 rounded-2xl bg-amber-500 px-4 py-2 font-bold text-white shadow-lg">
-                                                € {{ number_format($p->price_per_kg, 2, ',', '.') }}/kg
+                                                {{ $getPurchaseLabel($p->purchase_type) }}
                                             </div>
                                         </div>
                                         <div class="flex flex-col flex-1 p-5">
@@ -178,7 +187,7 @@
                                                      loading="lazy"
                                                      onerror="this.src='{{ $placeholder }}'; this.onerror=null;">
                                                 <div class="absolute top-3 right-3 rounded-xl bg-white px-3 py-1.5 text-sm font-bold text-amber-600 shadow-lg">
-                                                    € {{ number_format($p->price_per_kg, 2, ',', '.') }}
+                                                    {{ $getPurchaseLabel($p->purchase_type) }}
                                                 </div>
                                             </div>
                                             <div class="flex flex-col flex-1 p-4">

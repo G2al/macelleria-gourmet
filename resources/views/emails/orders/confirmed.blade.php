@@ -9,15 +9,21 @@ la tua prenotazione è stata **confermata da Polleria Gourmet**! 🎉
 ### 📦 Dettagli Ordine
 
 @foreach ($order->items as $item)
-- **Prodotto:** {{ $item->product->name }}
-- **Peso:** {{ number_format($item->weight, 3, ',', '.') }} kg  
-- **Prezzo unitario:** € {{ number_format($item->price_per_kg, 2) }}  
-- **Totale:** € {{ number_format($item->total_price, 2) }}
+**{{ $item->product->name }}**
+@if ($item->quantity_type === 'weight')
+{{ number_format($item->quantity, 3, ',', '.') }} kg
+@elseif ($item->quantity_type === 'unit')
+{{ (int)$item->quantity }} pezzi
+@elseif ($item->quantity_type === 'package')
+{{ (int)$item->quantity }} confezioni
+@else
+{{ $item->quantity }}
+@endif
 
----
 @endforeach
 
-💰 **Totale complessivo:** € {{ number_format($order->total_price, 2) }}  
+---
+
 📅 **Data di Ritiro:** {{ \Carbon\Carbon::parse($order->pickup_date)->format('d/m/Y') }}  
 🕒 **Orario:** {{ \Carbon\Carbon::parse($order->pickup_time)->format('H:i') }}
 

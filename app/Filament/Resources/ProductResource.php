@@ -38,10 +38,9 @@ class ProductResource extends Resource
                     ->label('Foto')
                     ->image()
                     ->directory('products')
-                    ->disk('public') // ✅ usa storage/app/public
+                    ->disk('public')
                     ->imagePreviewHeight('100')
                     ->visibility('public'),
-
 
                 Forms\Components\Select::make('category_id')
                     ->label('Categoria')
@@ -49,11 +48,16 @@ class ProductResource extends Resource
                     ->searchable()
                     ->required(),
 
-                Forms\Components\TextInput::make('price_per_kg')
-                    ->label('Prezzo al Kg (€)')
-                    ->numeric()
-                    ->prefix('€')
-                    ->required(),
+                Forms\Components\Select::make('purchase_type')
+                    ->label('Modalità di acquisto')
+                    ->options([
+                        'weight'   => 'Al peso (kg)',
+                        'unit'     => 'A pezzi',
+                        'package'  => 'A confezioni',
+                    ])
+                    ->default('weight')
+                    ->required()
+                    ->helperText('Scegli come il cliente ordinerà questo prodotto'),
 
                 Forms\Components\Toggle::make('is_active')
                     ->label('Attivo')
@@ -66,22 +70,53 @@ class ProductResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\ImageColumn::make('photo')
-                ->label('Foto')
-                ->disk('public') // ✅ serve anche qui
-                ->defaultImageUrl(asset('images/placeholder-product.png')) // 👈 immagine fallback
-                ->square(),
+                    ->label('Foto')
+                    ->disk('public')
+                    ->defaultImageUrl(asset('images/placeholder-product.png'))
+                    ->square(),
 
-                Tables\Columns\TextColumn::make('name')->label('Nome')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('category.name')->label('Categoria')->sortable(),
-                Tables\Columns\TextColumn::make('price_per_kg')->label('Prezzo al Kg (€)')->money('EUR'),
-                Tables\Columns\IconColumn::make('is_active')->label('Attivo')->boolean(),
-                Tables\Columns\TextColumn::make('created_at')->label('Creazione')->dateTime('d/m/Y'),
+                Tables\Columns\TextColumn::make('name')
+                    ->label('Nome')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('category.name')
+                    ->label('Categoria')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('purchase_type')
+                    ->label('Modalità')
+                    ->formatStateUsing(fn ($state) => match($state) {
+                        'weight'   => 'Peso',
+                        'unit'     => 'Pezzi',
+                        'package'  => 'Confezioni',
+                        default    => $state,
+                    })
+                    ->sortable(),
+
+                Tables\Columns\IconColumn::make('is_active')
+                    ->label('Attivo')
+                    ->boolean(),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Creazione')
+                    ->dateTime('d/m/Y'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('category_id')
                     ->label('Categoria')
                     ->relationship('category', 'name'),
-                Tables\Filters\TernaryFilter::make('is_active')->label('Attivo'),
+
+                Tables\Filters\SelectFilter::make('purchase_type')
+                    ->label('Modalità acquisto')
+                    ->options([
+                        'weight'   => 'Peso',
+                        'unit'     => 'Pezzi',
+                        'package'  => 'Confezioni',
+                    ]),
+
+                Tables\Filters\TernaryFilter::make('is_active')
+                    ->label('Attivo'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

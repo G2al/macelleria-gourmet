@@ -48,21 +48,23 @@
 
             <div class="divide-y divide-gray-800">
                 @foreach ($order->items as $item)
-                    <div class="flex justify-between py-2">
-                        <div>
+                    <div class="flex justify-between py-3 items-start">
+                        <div class="flex-1">
                             <p class="font-semibold text-gray-100">{{ $item->product->name }}</p>
-                            <p class="text-gray-400 text-xs">
-                                {{ number_format($item->weight, 2) }} kg × €{{ number_format($item->price_per_kg, 2) }}/kg
+                            <p class="text-gray-400 text-sm mt-1">
+                                @if ($item->quantity_type === 'weight')
+                                    {{ number_format($item->quantity, 3, ',', '.') }} kg
+                                @elseif ($item->quantity_type === 'unit')
+                                    {{ (int)$item->quantity }} pezzi
+                                @elseif ($item->quantity_type === 'package')
+                                    {{ (int)$item->quantity }} confezioni
+                                @else
+                                    {{ $item->quantity }}
+                                @endif
                             </p>
                         </div>
-                        <p class="font-semibold text-gray-100">€{{ number_format($item->total_price, 2) }}</p>
                     </div>
                 @endforeach
-            </div>
-
-            <div class="flex justify-between pt-4 mt-4 border-t border-gray-700 text-base font-semibold">
-                <span class="text-gray-300">Totale</span>
-                <span class="text-amber-400 text-lg">€{{ number_format($order->total_price, 2) }}</span>
             </div>
         </x-filament::section>
     </div>
